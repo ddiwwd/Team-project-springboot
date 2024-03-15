@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 매퍼파일 -->
+<mapper namespace="com.ict.teamProject.bbs.service.impl.BBSMapper">
+	<!-- 'BBSResult'라는 이름의 결과 매핑을 정의. 이 매핑은 'BBSDto' 타입의 객체를 생성. -->
+	<resultMap type="BBSDto" id="BBSResult">
+		 <!-- 'no'라는 속성은 쿼리 결과의 'no' 컬럼에 매핑. -->
+		<result property="bno" column="BBS_NO"/>
+		<result property="id" column="ID"/>
+		<result property="type" column="BBS_TYPE"/>
+		<result property="content" column="BBS_CONTENT"/>
+		<result property="disclosureYN" column="BBS_DISCLOSUREYN"/>
+		<result property="hashTag" column="BBS_HASHTAG"/>
+		<result property="postDate" column="BBS_POSTDATE"/>
+		<result property="profilepath" column="PRO_FILEPATH"/>
+		<collection property="files" ofType="string" select="findFile" column="BBS_NO"/>
+		<collection property="likes" ofType="string" select="whereLikes" column="BBS_NO"/>
+		<collection property="likesnum" ofType="int" select="findLikes" column="BBS_NO"/>		
+	</resultMap>
+	
+	<!-- 글번호 가져오기 -->
+	<select id="getSeqNextVal" resultType="java.lang.Integer">
+    	SELECT SEQ_BBS.NEXTVAL FROM dual
+	</select>
+	
+	<!-- 게시글 입력 -->
+	<insert id="save" parameterType="Map">
+		INSERT INTO BBS VALUES(#{getBno},#{id},#{type},#{content},#{disclosureYN},#{hashTag},SYSDATE)
+	</insert>
+	
+	<!-- 게시글에 해당하는 파일 입력 -->
+	<insert id="saveFiles" parameterType="Map">
+		INSERT INTO Files VALUES(#{getBno},#{urls},#{names})	
+	</insert>
+		
+	<!-- 게시글 전체 뿌리기 -->
+	<select id="findAll" parameterType="map" resultMap="BBSResult">
+	    SELECT BBS_NO, ID, BBS_TYPE, BBS_CONTENT, BBS_DISCLOSUREYN, BBS_HASHTAG, BBS_POSTDATE 
+	    FROM BBS 
+	    WHERE BBS_DISCLOSUREYN = 'Y' 
+    	<if test="types != null and types.size > 0 and !types.contains(0)">
+        	<foreach item="type" collection="types" open="AND BBS_TYPE IN (" separator="," close=")">
+            #{type}
+        	</foreach>
+    	</if>
+	    ORDER BY BBS_NO DESC
+	</select>
+	 
+ 	<!-- 해당 게시글의 파일 뿌리기 -->
+	 <select id="findFile" parameterType="int" resultType="String">
+	 	SELECT BBS_FILEPATH FROM Files WHERE BBS_NO = #{bno}
+	 </select>
+	
+	
+	<!-- 해당 게시글에 해당하는 게시물 출력 -->
+	<!--  
+	<select id="findByBBS" parameterType="int" resultMap="BBSResult">
+		<!- 글 번호에 따른 댓글 수는 제외하고 조회(상세보기 화면이니까:해당 글번호의 모든 댓글 뿌리니까) ->
+		SELECT * FROM BBS WHERE BBS_NO=#{bno}
+	</select>
+	-->
+	<select id="findByBBS" parameterType="int" resultMap="BBSResult">
+		SELECT * FROM (select b.*, p.pro_filepath from BBS b join profile p on b.id = p.id) WHERE BBS_NO= #{bno}	
+	</select>
+	
+	<!-- 자기가 쓴 게시물 출력 -->
+	<select id="findMyByBBS" parameterType="String" resultMap="BBSResult">
+		<!-- 글 번호에 따른 댓글 수는 제외하고 조회(상세보기 화면이니까:해당 글번호의 모든 댓글 뿌리니까) -->
+		SELECT b.*, p.PRO_FILEPATH as PRO_FILEPATH
+		FROM BBS b join PROFILE p on b.id = p.id 
+		WHERE b.ID=#{id}
+		ORDER BY BBS_NO DESC
+	</select>
+	
+	<!-- 카테고리에 해당하는 게시물 출력 -->
+	<select id="findTypeByBBS" parameterType="String" resultMap="BBSResult">
+		<!-- 글 번호에 따른 댓글 수는 제외하고 조회(상세보기 화면이니까:해당 글번호의 모든 댓글 뿌리니까) -->
+		SELECT * FROM BBS WHERE ID=#{id}ORDER BY BBS_NO DESC
+	</select>
+	
+	<!-- 해당 게시글에 해당하는 게시물 수정 -->
+	<update id="update" parameterType="BBSDto">
+		UPDATE BBS SET BBS_CONTENT=#{content}, BBS_DISCLOSUREYN=#{disclosureYN}, BBS_HASHTAG=#{hashTag}, BBS_POSTDATE=SYSDATE WHERE BBS_NO=#{bno}
+	</update>
+	
+	<!-- 해당 게시글에 해당하는 게시물 삭제 -->
+	<delete id="deleteBBS" parameterType="int">
+		DELETE BBS WHERE BBS_NO=#{bno}
+	</delete>
+	
+	<!-- 해당 게시글에 해당하는 파일 삭제 -->
+	<delete id="deleteFiles" parameterType="int">
+		DELETE Files WHERE BBS_NO=#{bno}
+	</delete>
+	
+	<!-- 스프링 씨큐리티 회원 입력용(REST API서비스)
+	<insert id="saveUser" parameterType="Map">
+		INSERT INTO member VALUES(#{id},#{pwd},#{name},DEFAULT,DEFAULT)
+	</insert> -->
+	
+	<!-- 모든 게시글에 뿌려줄 게시글 작성 user 프로필 -->
+	<select id="findIsFriend" parameterType="Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM ADD_FRIENDMATELIST WHERE ID IN (#{userId}, #{otherId}) AND AFML_ID IN (#{userId}, #{otherId}) AND AFML_TYPE=1
+	</select>
+	<select id="findIsSubto" parameterType="Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM subscribe_list WHERE ID=#{userId} AND SUBSCRIBE_ID=#{otherId}
+	</select>
+	<select id="findProfilePathById" parameterType="String" resultType="String">
+		SELECT PRO_FILEPATH FROM PROFILE WHERE ID=#{id}
+	</select>
+	
+	<!-- 좋아요 -->
+	<insert id="setLikes" parameterType="LikesDto">
+		INSERT INTO LIKES VALUES(default,#{id},
+		<choose>
+			<when test="cno != 0">
+				#{bno},#{cno},SYSDATE)
+			</when>
+			<when test="cno == 0">
+				#{bno},null,SYSDATE)
+			</when>
+		</choose>
+	</insert>
+	<delete id="deleteLikes" parameterType="LikesDto">
+		DELETE LIKES WHERE BBS_NO=#{bno} and ID=#{id}
+			<if test="cno != 0">
+				and LC_NO=#{cno}
+			</if>
+	</delete>
+	<select id="findLikes" parameterType="int" resultType="int">
+		SELECT count(*) FROM LIKES WHERE BBS_NO=#{bno} and (LC_NO IS NULL OR LC_NO = '')
+	</select>
+	
+	<select id="whereLikes" parameterType="int" resultType="String">
+		SELECT ID FROM LIKES WHERE BBS_NO=#{bno} and (LC_NO IS NULL OR LC_NO = '')
+	</select>
+	
+	<select id="findUserProfileByLike" parameterType="String" resultType="String">
+	    SELECT m.PRO_FILEPATH FROM LIKES l join PROFILE m on l.id=m.id WHERE m.id=#{userId} AND ROWNUM = 1
+	</select>
+	
+	<select id="findUserByLike" parameterType="int" resultType="String">
+	    SELECT id FROM LIKES WHERE BBS_NO=#{bno}
+	</select>
+	
+	
+	<!-- 관리자 페이지 게시글 전체 뿌리기 -->
+	<select id="findAllList" parameterType="map" resultMap="BBSResult">
+	    SELECT BBS_NO, ID, BBS_TYPE, BBS_CONTENT, BBS_DISCLOSUREYN, BBS_HASHTAG, BBS_POSTDATE 
+	    FROM BBS 
+	    WHERE  
+    	<if test="types != null and types.size > 0 and !types.contains(0)">
+        	<foreach item="type" collection="types" open="BBS_TYPE IN (" separator="," close=")">
+            #{type}
+        	</foreach>
+    	</if>
+	    ORDER BY BBS_NO DESC
+	</select>
+	
+</mapper>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ict.teamProject.actuality.ActualityMapper">	
+	
+	<insert id="saveActuality" parameterType="Map">
+		Insert INTO actuality_eating(id, ae_diettype, ae_foodname) Values(#{id}, #{ae_diettype}, #{ae_foodname})
+	</insert>
+	
+	<!--  
+	<select id="dailyActuality" resultType="ActualityEatingDto">
+		SELECT ae.*,fl.foodname, fl.calory, fl.carbohydrate, fl.protein, fl.fat, fl.sodium, fl.cholesterol
+			FROM actuality_eating ae
+			JOIN foodlist fl ON INSTR(',' || ae.ae_foodname || ',', ',' || fl.foodname || ',') > 0
+			WHERE ae.id = #{id} AND TO_CHAR(ae.ae_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+			ORDER BY 
+			    CASE 
+			        WHEN ae_diettype = '아침' THEN 1
+			        WHEN ae_diettype = '점심' THEN 2
+			        ELSE 3
+			    END		        
+	</select>
+	-->
+	<select id="dailyActuality" resultType="ActualityEatingDto">
+	SELECT ae.ae_diettype,
+       SUM(fl.calory) AS total_calory,
+       SUM(fl.carbohydrate) AS total_carbohydrate,
+       SUM(fl.protein) AS total_protein,
+       SUM(fl.fat) AS total_fat,
+       SUM(fl.sodium) AS total_sodium,
+       SUM(fl.cholesterol) AS total_cholesterol
+	FROM actuality_eating ae
+	JOIN foodlist fl ON INSTR(',' || ae.ae_foodname || ',', ',' || fl.foodname || ',') > 0
+	WHERE ae.id = #{id} AND TO_CHAR(ae.ae_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+	GROUP BY ae.ae_diettype
+	ORDER BY 
+	    CASE 
+	        WHEN ae.ae_diettype = '아침' THEN 1
+	        WHEN ae.ae_diettype = '점심' THEN 2
+	        ELSE 3
+	    END
+	</select>
+	
+	<select id="checkdailydiet" resultType="int">
+		SELECT count(*) FROM actuality_eating WHERE id = #{id} And TO_CHAR(ae_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') AND ae_dietType = #{ae_diettype}
+	</select>	
+	
+	<update id="updateActuality" parameterType="Map">
+		UPDATE actuality_eating SET ae_foodname = #{ae_foodname} WHERE id = #{id} and ae_diettype = #{ae_diettype} And TO_CHAR(ae_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+	</update>
+	
+	<select id="getEatting" parameterType="String" resultType="map">
+		SELECT * FROM actuality_eating WHERE id = #{id} AND TRUNC(AE_DATE) = TRUNC(SYSDATE)
+	</select>	
+</mapper>

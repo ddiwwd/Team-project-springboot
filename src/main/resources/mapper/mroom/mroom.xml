@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--24.02.18 생성 -->
+<!-- 매퍼파일 -->
+<mapper namespace="com.ict.teamProject.mate_room.service.impl.MRMapper">
+	<resultMap type="MRoom" id="MRResult">
+		<result property="mateNo" column="MR_NO"/>
+		<result property="mateSport" column="MR_SPORTNAME"/>
+		<result property="mateArea" column="MR_AREA"/>
+		<result property="mateDate" column="MR_DATE"/>
+		<result property="mateCapacity" column="MR_CAPACITY"/>
+		<result property="rYN" column="MR_DISCLOSUREYN"/>
+		<result property="matchingRoom" column="MATCHING_ROOMNO"/>
+		<result property="mCreateDate" column="MR_CREATEDATE"/>	
+		<result property="mateTitle" column="MR_TITLE"/>
+		<result property="mateContent" column="MR_CONTENT"/>
+		<result property="gLimit" column="MR_GENDER_LIMIT"/>
+		<result property="ageMin" column="MR_AGE_LIMIT_MIN"/>
+		<result property="ageMax" column="MR_AGE_LIMIT_Max"/>
+		<result property="mYN" column="MR_MATCHINGYN"/>
+		<result property="manager" column="manager"/>			
+	</resultMap>
+	
+	<!-- 시퀀스 값 생성 및 저장 -->
+	<select id="getSeqValue" resultType="int">
+	  SELECT SEQ_MATEROOM.NEXTVAL FROM dual
+	</select>
+	
+	<!-- 방생성 -->
+	<insert id="save" parameterType="MRoom">
+		INSERT INTO MATEROOM VALUES(SEQ_MATEROOM.NEXTVAL,#{mateSport},#{mateArea}, #{mateDate}, #{mateCapacity}, 
+		 #{rYN}, #{matchingRoom}, SYSDATE, #{mateTitle}, #{mateContent}, #{gLimit},#{ageMin},#{ageMax}, #{mYN})
+	</insert>
+	
+	<!-- 방생성 -->
+	<insert id="insertP" parameterType="MP">
+		INSERT INTO MATEROOM_PARTICIPANTS VALUES(SEQ_MRP.NEXTVAL,#{mateNo},#{id},'Y')
+	</insert>
+	
+ 	<!-- 방 번호 가져오기 -->
+	 <select id="getMyRoom" parameterType="String" resultType="Integer">
+	 	SELECT MR_NO FROM MATEROOM_PARTICIPANTS WHERE ID = #{id}
+	 </select>
+	 
+	<!-- 해당 방 삭제 -->
+	<delete id="delete" parameterType="int">
+	  DELETE FROM MATEROOM WHERE MR_NO = #{room}
+	</delete>
+	
+	<!-- 해당 방 삭제 -->
+	<delete id="deletep" parameterType="String">
+	  DELETE FROM MATEROOM_PARTICIPANTS WHERE ID = #{id}
+	</delete>
+
+	<!-- 모든 챌린지방과 해당 방의 방장 정보 가져오기 -->
+	<select id="findAll" resultMap="MRResult">
+	    SELECT MR.*, MP.id AS manager 
+	    FROM MATEROOM MR 
+	    LEFT JOIN MATEROOM_PARTICIPANTS MP ON MR.MR_NO = MP.MR_NO AND MP.MRP_MANAGER = 'Y'
+	    where MR_DISCLOSUREYN = 'Y' 
+	</select>
+	
+	<!-- 내 데이타 가져오기 -->
+	<select id="findmyData" parameterType="String" resultType="map">
+	    SELECT m.name, m.GENDER, m.B_DAY, p.PRO_FILEPATH from member m join profile p on m.id=p.id
+	    where m.id = #{id}
+	</select>
+	
+	<!-- 방에 참여자 데이타 가져오기 -->
+	<select id="participantsdata" parameterType="int" resultType="map">
+	    SELECT m.MRP_NO, m.ID, m.MR_NO,m.MRP_MANAGER, p.PRO_FILEPATH from MATEROOM_PARTICIPANTS m join profile p on m.id=p.id
+	    where m.MR_NO = #{challNo} ORDER BY MRP_NO DESC
+	</select>
+	
+	<!-- 해당 방 참여자 삭제 -->
+	<delete id="deletePeople" parameterType="int">
+	  DELETE FROM MATEROOM_PARTICIPANTS WHERE MR_NO = #{mateNo}
+	</delete>
+	
+	<!-- 방 입장 -->
+	<insert id="join" parameterType="MP">
+		INSERT INTO MATEROOM_PARTICIPANTS VALUES(SEQ_MRP.NEXTVAL,#{mateNo},#{id},'N')
+	</insert>
+	
+	<!-- 방의 데이타 가져오기 -->
+	<select id="findRoomData" parameterType="int" resultMap="MRResult">
+		SELECT MR.* , MP.id AS manager 
+	    FROM MATEROOM MR 
+	    JOIN MATEROOM_PARTICIPANTS MP ON MR.MR_NO = MP.MR_NO AND MP.MRP_MANAGER = 'Y'
+	    where MP.MR_NO = #{challNo}
+	</select>
+	
+	<!-- 다음 방장 찾기 -->
+	<select id="selectManager" parameterType="int" resultType="String">
+		SELECT id
+    	FROM (SELECT id, MRP_NO FROM MATEROOM_PARTICIPANTS WHERE MR_NO = #{challNo} ORDER BY MRP_NO ASC)
+    	WHERE ROWNUM = 1
+	</select> 
+	
+	<!-- 방장이 나갔을 때 수정 -->
+	<update id="update" parameterType="String" >
+		UPDATE MATEROOM_PARTICIPANTS SET MRP_MANAGER ='Y' WHERE id=#{manager}
+	</update>
+	
+	<!-- 방 공개/비공개 -->
+	<update id="updateRoom" parameterType="map" >
+		UPDATE MATEROOM SET MR_DISCLOSUREYN =#{open} WHERE MR_NO = #{mateNo}
+	</update>
+	
+	<!-- 일치하는 방 찾기 -->
+	<select id="matchingRoom" parameterType="MRoom" resultType="Integer">
+	    SELECT MR_NO
+	    FROM (
+	        SELECT MR_NO
+	        FROM MATCHING_STATUS
+	        WHERE MS_SPORTS = #{mateSport} and  MS_AREA=#{mateArea} and MS_DATE = #{mateDate} and MS_PEOPLE = #{mateCapacity}
+	        ORDER BY MS_NO ASC) 
+	    WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 방에 참여자 가져오기  -->
+	<select id="findparticipants" parameterType="int" resultType="MP" >
+		SELECT *
+    	FROM MATEROOM_PARTICIPANTS
+    	WHERE MR_NO = #{myRoom}
+	</select>
+	
+	
+	<!-- 방 매칭방 해주기  -->
+	<update id="matching" parameterType="map">
+		UPDATE MATEROOM SET MATCHING_ROOMNO =#{myRoom} WHERE MR_NO=#{room}
+	</update>
+	
+	<!--매칭 대기에서 삭제 해주기  -->
+	<delete id="deleteMatching" parameterType="int">
+	  DELETE FROM MATCHING_STATUS WHERE MR_NO = #{mateNo}
+	</delete>
+	
+	<!-- 자기 방이 매칭 됐는지 확인하기  -->
+	<select id="isMatching" parameterType="int" resultType="int">
+		SELECT MR_NO
+    	FROM MATEROOM
+    	WHERE MATCHING_ROOMNO = #{myRoom}
+	</select>
+	
+	<!-- 대기방에 자기 방 넣기  -->
+	<insert id="readyMyRoom" parameterType="MRoom">
+		INSERT INTO MATCHING_STATUS VALUES(SEQ_MATCHING_STATUS.NEXTVAL,#{mateNo},#{mateSport},#{mateArea},#{mateDate},#{mateCapacity})
+	</insert>
+	
+</mapper>

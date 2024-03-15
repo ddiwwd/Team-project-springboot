@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 매퍼파일 -->
+<mapper namespace="com.ict.teamProject.member_history.service.impl.MemberHistoryMapper">
+	<!-- 'BBSResult'라는 이름의 결과 매핑을 정의. 이 매핑은 'BBSDto' 타입의 객체를 생성. -->
+	<resultMap type="MemberHistoryDto" id="Member_HistoryResult">
+		<result property="id" column="id"/>
+		<result property="mem_colname" column="mem_colname"/>
+		<result property="before_value" column="before_value"/>
+		<result property="after_value" column="after_value"/>
+		<result property="update_day" column="update_day"/>
+	</resultMap>
+	
+		
+	<!-- 게시글 전체 뿌리기 -->
+	 <select id="findAll" parameterType="Map" resultType="MemberHistoryDto">
+	 	SELECT * FROM MEMBER_HISTORY WHERE ID = #{id} ORDER BY UPDATE_DAY DESC
+	 </select>
+	
+
+	<!-- 스프링 씨큐리티 회원 입력용(REST API서비스)
+	<insert id="saveUser" parameterType="Map">
+		INSERT INTO member VALUES(#{id},#{pwd},#{name},DEFAULT,DEFAULT)
+	</insert> -->
+</mapper>

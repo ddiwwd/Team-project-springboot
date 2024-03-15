@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ict.teamProject.notic.NoticMapper">	
+	<!--  
+	<select id="findAllNotic" resultType="NoticDto" parameterType="String">
+		SELECT * FROM 
+		(			
+			SELECT ts.*, c.BBS_NO, b.BBS_CONTENT, c.CCOMMENT, c.PARENT_COMMENT, p.PRO_FILEPATH FROM 
+				(
+					SELECT * FROM notic WHERE notic_receive_user = #{id} AND NOTIC_TYPE = 1
+				) ts 
+				JOIN COMMENTLINE c ON ts.TRIGGER_NO = c.C_NO
+				JOIN BBS b ON c.bbs_no = b.bbs_no
+				JOIN PROFILE p ON ts.NOTIC_TRIGGER_USER = p.ID
+			
+			UNION ALL 
+			
+			SELECT ts.*, NULL AS BBS_NO, b.BBS_CONTENT, NULL AS CCOMMENT, NULL AS PARENT_COMMENT, p.PRO_FILEPATH FROM 
+				(
+					SELECT * FROM notic WHERE notic_receive_user = #{id} AND NOTIC_TYPE = 2
+				) ts 
+				JOIN BBS b ON ts.TRIGGER_NO = b.BBS_NO
+				JOIN PROFILE p ON ts.NOTIC_TRIGGER_USER = p.ID
+		) 
+		ORDER BY notic_trigger_date DESC
+	</select>
+	-->
+	<select id="findAllNotic" resultType="NoticDto" parameterType="String">
+		SELECT * FROM 
+		(			
+			SELECT ts.*, c.BBS_NO, b.BBS_CONTENT, c.CCOMMENT, c.PARENT_COMMENT, p.PRO_FILEPATH FROM 
+				(
+					SELECT * FROM notic WHERE notic_receive_user = #{id} AND NOTIC_TYPE = 1
+				) ts 
+				JOIN COMMENTLINE c ON ts.TRIGGER_NO = c.C_NO
+				JOIN BBS b ON c.bbs_no = b.bbs_no
+				JOIN PROFILE p ON ts.NOTIC_TRIGGER_USER = p.ID
+			
+			UNION ALL 
+			
+			SELECT ts.*, NULL AS BBS_NO, b.BBS_CONTENT, NULL AS CCOMMENT, NULL AS PARENT_COMMENT, p.PRO_FILEPATH FROM 
+				(
+					SELECT * FROM notic WHERE notic_receive_user = #{id} AND NOTIC_TYPE = 2
+				) ts 
+				JOIN BBS b ON ts.TRIGGER_NO = b.BBS_NO
+				JOIN PROFILE p ON ts.NOTIC_TRIGGER_USER = p.ID
+				
+			UNION ALL
+            
+            SELECT ts.*, NULL AS BBS_NO, afl.AFML_NO AS BBS_CONTENT, afl.AFML_YN AS CCOMMENT, NULL AS PARENT_COMMENT, p.PRO_FILEPATH FROM 
+				(
+					SELECT * FROM notic WHERE notic_receive_user = #{id} AND (NOTIC_TYPE = 3 OR NOTIC_TYPE = 4)
+				) ts 
+                JOIN Add_FriendMateList afl ON TO_NUMBER(REGEXP_REPLACE(afl.AFML_NO, '[^0-9]', '')) = ts.TRIGGER_NO
+				JOIN PROFILE p ON ts.NOTIC_TRIGGER_USER = p.ID
+		) 
+		ORDER BY notic_trigger_date DESC
+	</select>
+	
+	
+	<update id="updateNotic" parameterType="Int">
+		UPDATE NOTIC SET CHECKED_TIME = CURRENT_TIMESTAMP WHERE TRIGGER_PK = #{trigger_pk}
+	</update>
+	
+	<delete id="deleteNotic" parameterType="Int"> 	
+		DELETE FROM NOTIC WHERE trigger_pk = #{trigger_pk}
+	</delete>
+	
+	<update id="afmlSaveY" parameterType="Int">
+		UPDATE Add_FriendMateList SET AFML_YN = 'Y' WHERE TO_NUMBER(REGEXP_REPLACE(AFML_NO, '[^0-9]', '')) = #{trigger_no}
+	</update>
+	
+	<delete id="afmlDeleteN" parameterType="Int"> 	
+		DELETE FROM Add_FriendMateList WHERE TO_NUMBER(REGEXP_REPLACE(AFML_NO, '[^0-9]', '')) = #{trigger_no}
+	</delete>
+</mapper>

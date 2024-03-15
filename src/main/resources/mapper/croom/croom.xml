@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--24.02.18 생성 -->
+<!-- 매퍼파일 -->
+<mapper namespace="com.ict.teamProject.challenge_room.service.impl.CRMapper">
+	<resultMap type="CRoom" id="CRResult">
+		<result property="challNo" column="CHALL_NO"/>
+		<result property="goal" column="GOAL_NO"/>
+		<result property="challCapacity" column="CHALL_CAPACITY"/>
+		<result property="implementation" column="IMPLEMENTATION_RATE"/>
+		<result property="gLimit" column="GENDER_LIMIT"/>
+		<result property="ageMin" column="AGE_LIMIT_MIN"/>
+		<result property="ageMax" column="AGE_LIMIT_MAX"/>
+		<result property="pFee" column="PARTICIPATION_FEE"/>	
+		<result property="cYN" column="CHALL_DISCLOSUREYN"/>
+		<result property="cCreateDate" column="CHALL_CREATEDATE"/>
+		<result property="cStartDate" column="CHALL_STARTDATE"/>
+		<result property="cEndDate" column="CHALL_ENDDATE"/>
+		<result property="challContent" column="CHALL_CONTENT"/>
+		<result property="challTitle" column="CHALL_TITLE"/>
+		<result property="challArea" column="CHALL_AREA"/>
+	    <result property="manager" column="manager"/>					
+	</resultMap>
+	<resultMap type="IM" id="IMResult">
+		<result property="id" column="ID"/>
+		<result property="exercise" column="EXERCISE"/>
+		<result property="eatting" column="EATING"/>
+		<result property="recordDate" column="RECORD_DATE"/>				
+	</resultMap>
+
+	
+	<!-- 시퀀스 값 생성 및 저장 -->
+	<select id="getSeqValue" resultType="int">
+	  SELECT SEQ_CHALLENGEROOM.NEXTVAL FROM dual
+	</select>
+	
+	<!-- 방생성 -->
+	<insert id="save" parameterType="Map">
+		INSERT INTO CHALLENGE_ROOM VALUES(SEQ_CHALLENGEROOM.NEXTVAL,#{challCapacity},#{implementation}, #{gLimit}, #{ageMin}, 
+		 #{ageMax}, #{pFee}, #{cYN},SYSDATE, #{cStartDate}, #{cEndDate}, #{challContent},#{challTitle},#{challArea}, #{goal})
+	</insert>
+	
+	<!-- 방생성 -->
+	<insert id="insertP" parameterType="CP">
+		INSERT INTO CHALLENGE_PARTICIPANTS VALUES(SEQ_CHALLP.NEXTVAL,#{challNo},#{id},'Y', 0)
+	</insert>
+	
+ 	<!-- 방 번호 가져오기 -->
+	 <select id="getMyRoom" parameterType="String" resultType="Integer">
+	 	SELECT Chall_NO FROM CHALLENGE_PARTICIPANTS WHERE ID = #{id}
+	 </select>
+	 
+	<!-- 해당 방 삭제 -->
+	<delete id="delete" parameterType="int">
+	  DELETE FROM CHALLENGE_ROOM WHERE Chall_NO = #{challNo}
+	</delete>
+	
+	<!-- 해당 방 참여자 삭제 -->
+	<delete id="deletePeople" parameterType="int">
+	  DELETE FROM CHALLENGE_PARTICIPANTS WHERE Chall_NO = #{challNo}
+	</delete>
+	
+	<!-- 해당 방 삭제 -->
+	<delete id="deletep" parameterType="String">
+	  DELETE FROM CHALLENGE_PARTICIPANTS WHERE ID = #{id}
+	</delete>
+
+	<!-- 모든 챌린지방과 해당 방의 방장 정보 가져오기-->
+	<select id="findAll" resultMap="CRResult">
+	    SELECT CR.*, CP.id AS manager 
+	    FROM CHALLENGE_ROOM CR 
+	    LEFT JOIN CHALLENGE_PARTICIPANTS CP ON CR.Chall_NO = CP.Chall_NO AND CP.Chall_MANAGER = 'Y'
+	    where CHALL_DISCLOSUREYN = 'Y' 
+	</select>
+	
+	<!-- 내 데이타 가져오기 -->
+	<select id="findmyData" parameterType="String" resultType="map">
+	    SELECT m.name, m.GENDER, m.B_DAY, p.PRO_FILEPATH from member m join profile p on m.id=p.id
+	    where m.id = #{id}
+	</select>
+	
+	<!-- 방에 참여자 데이타 가져오기 -->
+	<select id="participantsdata" parameterType="int" resultType="map">
+	    SELECT c.CHALL_NO, c.ID, c.CHALL_P_NO,c.CHALL_MANAGER, c.CHALL_IMPLEMENTATION_RATE, p.PRO_FILEPATH
+	    from CHALLENGE_PARTICIPANTS c join profile p on c.id=p.id
+	    where C.CHALL_NO = #{challNo} ORDER BY CHALL_P_NO ASC
+	</select>
+	
+	<!--이행률 계산 -->
+	<select id="implcal" parameterType="int" resultMap="IMResult">
+	    SELECT CE.*
+	    from CHALLENGE_RECORD CE join CHALLENGE_PARTICIPANTS CP on CE.id = CP.id
+	    join CHALLENGE_ROOM CR on CR.CHALL_NO = CP.CHALL_NO
+	    where CR.Chall_NO = #{challNo}
+	</select>
+	
+	<!--이행률 넣기 -->
+	<update id="implinsert" parameterType="map" >
+	    UPDATE CHALLENGE_PARTICIPANTS SET CHALL_IMPLEMENTATION_RATE=#{rate} WHERE id=#{id}
+	</update>
+	
+	<!--목표 가져오기-->
+	<select id="findGoalOfNum" parameterType="int" resultType="String">
+	    SELECT GOAL_NO
+	    from CHALLENGE_ROOM
+   	    where Chall_NO = #{challNo} 
+	</select>
+	
+	<!--챌린지 시작 날짜 가져오기 -->
+	<select id="startchall" parameterType="int" resultType="java.sql.Date">
+	    SELECT CHALL_STARTDATE
+	    FROM CHALLENGE_ROOM
+	    WHERE Chall_NO = #{challNo}
+	</select>
+	
+	<!--참여자 아이디만 가져오기-->
+	<select id="getId" parameterType="int" resultType="String">
+    	SELECT CP.id
+	    from CHALLENGE_ROOM CR join CHALLENGE_PARTICIPANTS CP on CR.CHALL_NO = CP.CHALL_NO
+	    where CR.Chall_NO = #{challNo}
+	</select> 
+	
+	<!-- 방 입장 -->
+	<insert id="join" parameterType="CP">
+		INSERT INTO CHALLENGE_PARTICIPANTS VALUES(SEQ_CHALLP.NEXTVAL,#{challNo},#{id},'N', 0)
+	</insert>
+	
+	<!-- 방의 데이타 가져오기 -->
+	<select id="findRoomData" parameterType="int" resultMap="CRResult">
+		SELECT CR.* , CP.id AS manager 
+	    FROM CHALLENGE_ROOM CR 
+	    JOIN CHALLENGE_PARTICIPANTS CP ON CR.Chall_NO = CP.Chall_NO AND CP.Chall_MANAGER = 'Y'
+	    where CR.CHALL_NO = #{challNo}
+	</select>
+	
+	<!-- 다음 방장 찾기 -->
+	<select id="selectManager" parameterType="int" resultType="String">
+		SELECT id
+    	FROM (SELECT id, CHALL_P_NO FROM CHALLENGE_PARTICIPANTS WHERE CHALL_NO = #{challNo} ORDER BY CHALL_P_NO ASC)
+    	WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 방장이 나갔을 때 수정 -->
+	<update id="update" parameterType="String" >
+		UPDATE CHALLENGE_PARTICIPANTS SET CHALL_MANAGER='Y' WHERE id=#{manager}
+	</update>
+	
+	<!-- 목표 찾기 -->
+	<select id="findGoal" parameterType="String" resultType="map">
+		SELECT CR.GOAL_NO, CP.CHALL_IMPLEMENTATION_RATE
+    	FROM CHALLENGE_ROOM CR join CHALLENGE_PARTICIPANTS CP on CR.CHALL_NO = CP.CHALL_NO
+    	WHERE CP.id =#{id}
+	</select>
+	
+	<!-- 이행률 반영 -->
+	<insert id="insertEattingImpl" parameterType="IM">
+		INSERT INTO CHALLENGE_RECORD VALUES(#{id},0,#{eatting},SYSDATE)
+	</insert>
+	<!-- 이행률 반영 -->
+	<insert id="insertExerciseImpl" parameterType="IM">
+		INSERT INTO CHALLENGE_RECORD VALUES(#{id},#{exercise},0,SYSDATE)
+	</insert>
+	
+	<!-- 이행률 찾기 -->
+	<select id="findImpl" parameterType="String">
+	    SELECT RECORD_DATE 
+	    FROM (
+	        SELECT RECORD_DATE 
+	        FROM CHALLENGE_RECORD 
+	        WHERE id = #{id}
+	        ORDER BY RECORD_DATE DESC
+	    )
+	    WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 이행률 찾기 -->
+	<select id="findImplAll" parameterType="String" resultMap="IMResult">
+		SELECT *
+		FROM (
+		  SELECT *
+		  FROM CHALLENGE_RECORD
+		  WHERE id = #{id}
+		  ORDER BY RECORD_DATE DESC
+		)
+		WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 이행률 변경 -->
+	<update id="updateEattingImpl" parameterType="IM" >
+		UPDATE CHALLENGE_RECORD SET EATING=#{eatting} WHERE id =#{id} and RECORD_DATE = #{recordDate}
+	</update>
+	
+	<!-- 이행률 변경 -->
+	<update id="updateExerciseImpl" parameterType="IM" >
+		UPDATE CHALLENGE_RECORD SET EXERCISE=#{exercise} WHERE id =#{id} and RECORD_DATE = #{recordDate}
+	</update>
+
+	<!-- 이행률 반영 -->
+	<insert id="insertImpl" parameterType="IM">
+		INSERT INTO CHALLENGE_RECORD VALUES(#{id},#{exercise},#{eatting},SYSDATE)
+	</insert>
+
+	<!-- 이행률 변경 -->
+	<update id="updateImpl" parameterType="IM" >
+		UPDATE CHALLENGE_RECORD SET EXERCISE=#{exercise}, EATING=#{eatting} WHERE id =#{id} and RECORD_DATE = #{recordDate}
+	</update>
+	
+	<!-- 챌린지 성공 유무 확인 -->
+	<select id="successPeople" parameterType="int" resultType="SuccessPeopleDto">
+		SELECT 
+		    cr.CHALL_NO,
+		    subquery.ID,
+		    cr.TOTAL_FEE,
+		    cr.SUCCESS_COUNT,
+		    subquery.TOTAL_COUNT,
+		    CASE
+		        WHEN cr.SUCCESS_COUNT > subquery.TOTAL_COUNT THEN '실패'
+		        ELSE '성공' 
+		    END AS RESULT
+		FROM 
+		    (
+		        SELECT 
+		            cr.CHALL_NO,
+		            cp.ID,
+		            SUM(
+		                CASE 
+		                    WHEN cr.type = '식단' THEN LENGTH(chr.eating) - LENGTH(REPLACE(chr.eating, ',', '')) + 1
+		                    WHEN cr.type = '건강' THEN LENGTH(chr.exercise) - LENGTH(REPLACE(chr.exercise, ',', '')) + 1
+		                    ELSE 0
+		                END
+		            ) AS TOTAL_COUNT
+		        FROM 
+		            (
+		                SELECT 
+		                    cr.*, 
+		                    CASE 
+		                        WHEN (goal_no = '체중 감량' or goal_no = '다이어트 식단') THEN '식단'
+		                        ELSE '건강' 
+		                    END AS TYPE
+		                FROM 
+		                    challenge_room cr
+		                WHERE 
+		                    CHALL_NO = #{challNo}
+		            ) cr
+		        JOIN 
+		            CHALLENGE_PARTICIPANTS cp ON cr.CHALL_NO = cp.CHALL_NO
+		        JOIN 
+		            CHALLENGE_RECORD chr ON chr.ID = cp.ID
+		        WHERE 
+		            chr.RECORD_DATE BETWEEN cr.CHALL_STARTDATE AND cr.CHALL_ENDDATE
+		        GROUP BY 
+		            cr.CHALL_NO, cp.ID
+		    ) subquery
+		JOIN 
+		    (
+		        SELECT 
+		            cr.CHALL_NO,
+		            (cp.PARTICIPANTS * cr.PARTICIPATION_FEE) AS TOTAL_FEE,        
+		            ((cr.CHALL_ENDDATE - cr.CHALL_STARTDATE) * 3 * cr.IMPLEMENTATION_RATE / 100) AS SUCCESS_COUNT 
+		        FROM 
+		            (
+		                SELECT 
+		                    CHALL_NO, IMPLEMENTATION_RATE, CHALL_CAPACITY, 
+		                    PARTICIPATION_FEE, CHALL_STARTDATE, CHALL_ENDDATE 
+		                FROM 
+		                    CHALLENGE_ROOM 
+		                WHERE 
+		                    CHALL_NO = #{challNo}
+		            ) cr
+		        JOIN 
+		            (
+		                SELECT 
+		                    CHALL_NO, COUNT(*) AS PARTICIPANTS
+		                FROM 
+		                    CHALLENGE_PARTICIPANTS
+		                WHERE 
+		                    CHALL_NO = #{challNo}
+		                GROUP BY 
+		                    CHALL_NO
+		            ) cp ON cr.CHALL_NO = cp.CHALL_NO
+		    ) cr ON subquery.CHALL_NO = cr.CHALL_NO
+	</select>
+	
+	<select id="successCount" parameterType="int" resultType="int">
+		SELECT COUNT(*) FROM
+			(
+				SELECT 
+				    cr.CHALL_NO,
+				    subquery.ID,
+				    cr.TOTAL_FEE,
+				    cr.SUCCESS_COUNT,
+				    subquery.TOTAL_COUNT,
+				    CASE
+				        WHEN cr.SUCCESS_COUNT > subquery.TOTAL_COUNT THEN '실패'
+				        ELSE '성공' 
+				    END AS RESULT
+				FROM 
+				    (
+				        SELECT 
+				            cr.CHALL_NO,
+				            cp.ID,
+				            SUM(
+				                CASE 
+				                    WHEN cr.type = '식단' THEN LENGTH(chr.eating) - LENGTH(REPLACE(chr.eating, ',', '')) + 1
+				                    WHEN cr.type = '건강' THEN LENGTH(chr.exercise) - LENGTH(REPLACE(chr.exercise, ',', '')) + 1
+				                    ELSE 0
+				                END
+				            ) AS TOTAL_COUNT
+				        FROM 
+				            (
+				                SELECT 
+				                    cr.*, 
+				                    CASE 
+				                        WHEN (goal_no = '체중 감량' or goal_no = '다이어트 식단') THEN '식단'
+				                        ELSE '건강' 
+				                    END AS TYPE
+				                FROM 
+				                    challenge_room cr
+				                WHERE 
+				                    CHALL_NO = #{challNo}
+				            ) cr
+				        JOIN 
+				            CHALLENGE_PARTICIPANTS cp ON cr.CHALL_NO = cp.CHALL_NO
+				        JOIN 
+				            CHALLENGE_RECORD chr ON chr.ID = cp.ID
+				        WHERE 
+				            chr.RECORD_DATE BETWEEN cr.CHALL_STARTDATE AND cr.CHALL_ENDDATE
+				        GROUP BY 
+				            cr.CHALL_NO, cp.ID
+				    ) subquery
+				JOIN 
+				    (
+				        SELECT 
+				            cr.CHALL_NO,
+				            (cp.PARTICIPANTS * cr.PARTICIPATION_FEE) AS TOTAL_FEE,        
+				            ((cr.CHALL_ENDDATE - cr.CHALL_STARTDATE) * 3 * cr.IMPLEMENTATION_RATE / 100) AS SUCCESS_COUNT 
+				        FROM 
+				            (
+				                SELECT 
+				                    CHALL_NO, IMPLEMENTATION_RATE, CHALL_CAPACITY, 
+				                    PARTICIPATION_FEE, CHALL_STARTDATE, CHALL_ENDDATE 
+				                FROM 
+				                    CHALLENGE_ROOM 
+				                WHERE 
+				                    CHALL_NO = #{challNo}
+				            ) cr
+				        JOIN 
+				            (
+				                SELECT 
+				                    CHALL_NO, COUNT(*) AS PARTICIPANTS
+				                FROM 
+				                    CHALLENGE_PARTICIPANTS
+				                WHERE 
+				                    CHALL_NO = #{challNo}
+				                GROUP BY 
+				                    CHALL_NO
+				            ) cp ON cr.CHALL_NO = cp.CHALL_NO
+				    ) cr ON subquery.CHALL_NO = cr.CHALL_NO
+			    ) WHERE RESULT = '성공'
+	</select>
+	
+	<insert id="givePoint" parameterType="Map">
+		INSERT INTO PAYMENT_LIST(ID, PAY_TYPE, PAY_NAME, PAY_PRICE, PAY_METHOD) VALUES(#{id}, 2, '챌린지 달성 보상', #{point} ,'포인트 지급')
+	</insert>
+	
+	<update id="updatEndDate" parameterType="int">
+		UPDATE CHALLENGE_ROOM SET CHALL_ENDDATE = SYSDATE WHERE CHALL_NO = #{challNo}
+	</update>
+</mapper>

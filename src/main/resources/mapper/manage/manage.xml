@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ict.teamProject.diary.ManageMapper">
+	<!-- 다이어리 내용 가져오기 -->
+	<select id="findDiaryById" parameterType="String" resultType="DiaryDto">
+		SELECT * FROM DIARY WHERE DIARYID = #{UserNDate}
+	</select>
+	<!-- 다이어리 사진 가져오기 -->
+	<select id="findDiaryImgUrlsByDiaryId" parameterType="String" resultType="String">
+		SELECT DIARY_IMAGEPATH FROM DIARY_IMAGE WHERE DIARYID = #{diaryId}
+	</select>
+	<!-- 다이어리 텍스트 저장 -->
+	<insert id="uploadDiaryById" parameterType="DiaryDto">
+		INSERT INTO DIARY(DIARYID, ID, DIARY_CONTENT, STRESS) VALUES(#{diaryId}, #{id},#{diary_content},#{emotion})
+	</insert>
+	<!-- 다이어리 이미지 저장 -->
+	<update id="uploadDiaryImageById" parameterType="list">
+		<foreach collection="list" item="item" separator=" " open="INSERT ALL" close="SELECT * FROM DUAL">
+			INTO diary_image(DIARYID, IMAGETYPE, DIARY_IMAGEPATH, DIARY_IMAGENAME)
+			VALUES(#{item.diaryId}, 1, #{item.imgUrl}, #{item.name})
+		</foreach>
+	</update>
+	
+	<!-- 유저가 작성한 모든 텍스트 가져오기 -->
+	<select id="findAllusertext" parameterType="String" resultType="DiaryDto">
+		SELECT * FROM DIARY WHERE id = #{id}
+	</select>	
+	
+</mapper>

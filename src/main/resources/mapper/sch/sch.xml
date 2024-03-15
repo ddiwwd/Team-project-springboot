@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ict.teamProject.schedule.service.impl.SCHMapper">	
+	<resultMap type="SCHDto" id="SCHResult">
+		 <!-- 'no'라는 속성은 쿼리 결과의 'no' 컬럼에 매핑. -->
+		<result property="sNo" column="SCH_NO"/>
+		<result property="id" column="ID"/>
+		<result property="sTitle" column="SCH_TITLE"/>
+		<result property="sContent" column="SCH_COMMENT"/>
+		<result property="sEat" column="SCH_EAT"/>
+		<result property="sExer" column="SCH_EXERCISE"/>
+		<result property="sDest" column="SCH_DESTINATION"/>
+		<result property="cal" column="CALENDAR"/>
+		<result property="sArea" column="SCH_AREA"/>
+		<result property="start" column="SCH_START"/>
+		<result property="end" column="SCH_END"/>
+		<result property="sCom" column="SCH_COMPLETE"/>
+		<result property="rPathNo" column="RPATH_NO"/>
+		<result property="sMate" column="SCH_MATEID"/>
+	</resultMap>
+	
+	<!-- 스케줄 입력 -->
+	<insert id="insert" parameterType="SCHDto">
+		INSERT INTO SCHEDULE VALUES(default,#{id},#{sTitle},#{sContent},#{sEat},#{sExer},#{sDest},#{cal},#{sArea},#{start},#{end},default,null,null)
+	</insert>
+	
+	<!-- 스케줄 하나만 조회 -->
+	<select id="seleteOne" parameterType="String" resultType="SCHDto">
+	  SELECT * FROM (SELECT * FROM SCHEDULE WHERE ID = #{id}) WHERE ROWNUM = 1
+	</select>
+
+	<!-- 스케줄 전체 조회 -->
+	<select id="seleteAll" parameterType="String" resultMap="SCHResult">
+	  SELECT * FROM SCHEDULE WHERE ID = #{id}
+	</select>
+	
+	<!-- 오늘의 스케줄 전체 조회 -->
+	<select id="seleteTodayAll" parameterType="String" resultMap="SCHResult">
+	  SELECT * FROM SCHEDULE WHERE ID = #{id} AND TRUNC(SCH_START) = TRUNC(SYSDATE)
+	  ORDER BY SCH_START
+	</select>
+	
+	<!-- 해당 스케쥴 삭제 -->
+	<delete id="delete" parameterType="map">
+		DELETE SCHEDULE WHERE ID = #{id} and SCH_NO = #{sNo}
+	</delete>
+	
+	<!-- 해당 스케쥴 수정 -->
+	<update id="update" parameterType="Map">
+		UPDATE SCHEDULE SET SCH_TITLE = #{title}, SCH_COMMENT = #{content}, SCH_EAT = #{eat},
+		SCH_EXERCISE = #{exercise}, SCH_DESTINATION = #{endArea}, CALENDAR = #{calendar}, SCH_AREA = #{startArea},
+		SCH_START = TO_DATE(#{start}, 'YYYY-MM-DD HH24:MI'), 
+        SCH_END = TO_DATE(#{end}, 'YYYY-MM-DD HH24:MI')  WHERE sch_no = #{no} and ID = #{id}
+	</update>
+
+	<select id="priorAddress" parameterType="String" resultMap="SCHResult">
+		SELECT * FROM SCHEDULE WHERE id = #{id} AND TRUNC(SCH_START) = TRUNC(SYSDATE) AND (CALENDAR IN (2, 3, 4))ORDER BY SCH_START
+	</select>
+	
+	<update id="updateRestaurant" parameterType="Map">
+		UPDATE SCHEDULE SET sch_destination = #{sDest} WHERE sch_no = #{sNo}
+	</update>
+	
+	<!-- 해당 날짜 스케줄 전체 조회 -->
+	<select id="seleteAnyAll" parameterType="map" resultMap="SCHResult">
+	  SELECT * FROM SCHEDULE WHERE ID = #{id} AND TRUNC(SCH_START) = TO_DATE(#{start}, 'YYYY-MM-DD')
+	</select>
+</mapper>

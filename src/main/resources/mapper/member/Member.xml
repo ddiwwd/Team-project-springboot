@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+
+<mapper namespace="com.ict.teamProject.member.service.impl.MemberMapper">
+	<resultMap type="MemberDto" id="MemberResult">
+		<result property="id" column="id"/>
+		<result property="pwd" column="pwd"/>
+		<result property="name" column="name"/>
+		<result property="gender" column="gender"/>
+		<result property="b_day" column="b_day"/>
+		<result property="tel" column="tel"/>
+		<result property="height" column="height"/>
+		<result property="weight" column="weight"/>
+		<result property="userAddress" column="userAddress"/>
+		<result property="goal_No" column="goal_No"/>
+		<result property="regidate" column="regidate"/>
+	</resultMap>
+ 
+	<insert id="saveMember" parameterType="MemberDto" useGeneratedKeys="true" keyProperty="id">
+		 INSERT INTO member(id, pwd, name, gender, b_day, tel, userAddress, height, weight, goal_No, regidate, authority) VALUES (#{id}, #{pwd}, #{name}, #{gender}, #{b_day}, #{tel}, #{userAddress}, #{height}, #{weight}, #{goal_No}, default , #{authority}) 
+	</insert>
+		<!-- INSERT INTO member VALUES (?, ?, ?, 'M', ?, 'seoul', ?, ?, '1', SYSDATE); -->
+	<select id="checkPhoneNumber" parameterType="string" resultType="boolean">
+	  SELECT COUNT(*) FROM member WHERE tel = #{tel}
+	</select>
+
+	<select id="findByUsername" resultType="MemberDto" parameterType="String">
+		SELECT id,pwd,authority FROM member WHERE id = #{id}
+	</select>
+	
+	<select id="findbyUserPassword" resultType="String" parameterType="java.util.Map">
+		SELECT pwd FROM member WHERE id= #{id}
+	</select>
+	
+		<select id="getInfo" resultType="Map" parameterType="String">
+		SELECT authority,provider FROM member WHERE id=#{id}
+	</select>
+	
+	<select id="findByMemberInfo" resultType="MemberDto" parameterType="String">
+		SELECT name,m.id,pro_filepath FROM member m join profile p on m.id = p.id WHERE m.id = #{id}
+	</select>
+	<select id="isPreviousUser" resultType="int" parameterType="String">
+		SELECT count(*) FROM member WHERE id=#{id}
+	</select>
+
+	<select id="findByMember" parameterType="string" resultType="MemberDto">
+	  SELECT * FROM member WHERE id = #{id}
+	</select>
+	
+	<insert id="joinSocialMember" parameterType="MemberDto">
+		INSERT INTO member(ID, PWD, NAME , REGIDATE , AUTHORITY ,PROFILEIMAGE , PROVIDER)
+		VALUES(#{id},#{pwd},#{name} , SYSDATE ,#{authority},#{profileimage,jdbcType=VARCHAR} ,#{provider} )
+	</insert>
+	
+	<update id="updateSocialUser" parameterType="MemberDto" >
+	    UPDATE member 
+    SET 
+    B_DAY = #{b_day},
+    GENDER = #{gender},
+    HEIGHT = #{height,jdbcType=DOUBLE},
+    WEIGHT = #{weight,jdbcType=DOUBLE},
+    GOAL_NO = #{goal_No},
+    TEL = #{tel},
+    USERADDRESS = #{userAddress}
+    WHERE id = #{id}
+	</update>
+	
+	<update id="updateUser" parameterType="MemberDto">
+    UPDATE member
+    SET name=#{name}, profileimage=#{profileimage}  <!-- 필요한 필드를 추가하시면 됩니다 -->
+    WHERE id=#{id}
+	</update>
+	
+	<update id="updateMember" parameterType="String" >
+		UPDATE member SET ${colname} = #{newcolval} WHERE id = #{id}
+	</update>
+	
+	<select id="logincheck" parameterType="string">
+	  SELECT COUNT(*) FROM member WHERE id = #{id} and pwd = #{pwd}
+	</select>
+	
+	<select id="searchPoint" parameterType="string">
+	  SELECT id, point FROM member WHERE id = #{id}
+	</select>
+	
+	<!-- FMC 토큰 저장용 -->
+	<insert id="saveFMCToken" parameterType="map">
+	  INSERT INTO FIREBASE VALUES(#{id}, #{token})
+	</insert>
+	
+	<!-- FMC 토큰 삭제용 -->
+	<delete id="deleteFMCToken" parameterType="String">
+	  DELETE FIREBASE WHERE ID=#{id}
+	</delete>
+	
+	<!-- FCM 토큰 불러오기용 -->
+	<select id="findFMCTokenById" parameterType="String">
+	  SELECT NOTIC_TOKEN FROM FIREBASE WHERE ID = #{id}
+	</select>
+	
+	<select id="getUserAddress" parameterType="String">
+		SELECT ID, USERADDRESS FROM MEMBER WHERE ID = #{id}
+	</select>
+	
+	<select id="findByMemberId" parameterType="string" resultType="MemberDto">
+    SELECT id, gender, weight, height, goal_No, tel, userAddress
+    FROM Member
+    WHERE id = #{id}
+	</select>
+	
+	<select id="findMemberById" parameterType="string" resultType="MemberDto">
+	    SELECT b_day, gender, weight, height, goal_No, tel, userAddress
+	    FROM Member
+	    WHERE id = #{id}
+	</select>
+	
+	<select id="getMemberByNameAndBday" resultType="MemberDto">
+	    SELECT * FROM member WHERE name = #{name} AND b_day = #{b_day}
+	</select>
+	
+	<select id="getMemberByIdAndEmail" resultType="MemberDto">
+	    SELECT * FROM member WHERE id = #{id} 
+	</select>
+	<select id="findByUsernameAndRole" resultType="MemberDto">
+	    SELECT *
+	    FROM member
+	    WHERE username = #{username}
+	    AND authority = #{authority}
+	</select>
+	<update id="updatePassword" parameterType="string">
+	    UPDATE member
+	    SET pwd = #{pwd}
+	    WHERE id = #{id}
+	</update>
+	
+	<select id="findAllUser" resultType="map">
+	    SELECT DISTINCT m.*, g.GOAL_NAME
+		FROM member m 
+		JOIN GOAL g on m.GOAL_NO = g.GOAL_NO
+		WHERE M.ID NOT IN (SELECT CL_ID FROM COMPLAIN_LIST)
+		ORDER BY m.REGIDATE DESC
+	</select>
+	<!-- 신고당한 모든 유저 가져오기 -->
+	<select id="findAllComplainedUsers" resultType="MemberManageDto">
+		SELECT * FROM COMPLAIN_LIST
+	</select>
+	<!-- 블랙리스트에서 유저 해제하기 -->
+	<delete id="deleteUserFromComplainList" parameterType="String">
+		DELETE COMPLAIN_LIST WHERE CL_ID = #{id}
+	</delete>
+	<!-- 관리자 페이지에서 유저 한번에 신고하기 -->
+	<insert id="addUserToComplainList" parameterType="MemberManageDto">
+		INSERT INTO COMPLAIN_LIST(ID, CL_ID, CL_REASON, CL_DATE, CL_TYPE) VALUES(#{id},#{cl_id},#{cl_reason},SYSDATE, 0)
+	</insert>
+	
+	<select id="defaultArea" parameterType="String" resultType="String">
+		SELECT USERADDRESS FROM MEMBER WHERE ID = #{id}
+	</select>
+</mapper>

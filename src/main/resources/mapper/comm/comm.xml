@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ict.teamProject.comm.CommMapper">
+	<select id="findAllMatesById" resultType="MateDto" parameterType="String">
+		SELECT * FROM MATE_LIST WHERE ID = #{id}
+	</select>
+	<select id="findAllFriendsById" resultType="FriendDto" parameterType="String">
+		SELECT * FROM FRIEND_LIST WHERE ID = #{id} and friend_blocking='N'
+	</select>
+	<select id="findAllSubToById" resultType="SubscribeToDto" parameterType="String">
+		SELECT * FROM SUBSCRIBE_LIST WHERE ID = #{id}
+	</select>
+	<select id="findAllMySubById" resultType="MySubscriberDto" parameterType="String">
+		SELECT * FROM SUBSCRIBE_LIST WHERE SUBSCRIBE_ID = #{id}
+	</select>
+	<select id="findNameById" resultType="String" parameterType="String">
+		SELECT name from member where id = #{id}
+	</select>
+	<select id="findFnumById" resultType="Integer" parameterType="String">
+		SELECT COUNT(*) FROM FRIEND_LIST WHERE ID = #{id}
+	</select>
+	<select id="findMnumById" resultType="Integer" parameterType="String">
+		SELECT COUNT(*) FROM MATE_LIST WHERE ID = #{id}
+	</select>
+	<select id="findSnumById" resultType="Integer" parameterType="String">
+		SELECT COUNT(*) FROM SUBSCRIBE_LIST WHERE SUBSCRIBE_ID = #{id}
+	</select>
+	<select id="findProPathById" resultType="String" parameterType="String">
+		SELECT pro_filepath from profile WHERE ID = #{id}
+	</select>
+	<update id="putFavorableRating" parameterType="MateDto">
+		UPDATE MATE_LIST SET FAVORABLE_RATING = #{favorable_rating}
+		WHERE MATE_ID = #{mate_id}
+	</update>
+	<select id="findIntroductionById" parameterType="String" resultType="String">
+		SELECT PRO_INTRODUCTION FROM PROFILE
+		WHERE ID = #{id}
+	</select>
+	<select id="findJoinDateById" parameterType="String" resultType="java.sql.Date">
+		SELECT REGIDATE FROM member
+		WHERE ID = #{id}
+	</select>
+	
+	<update id="putFriendBlocking" parameterType="Map">
+		UPDATE FRIEND_LIST SET FRIEND_BLOCKING = 'Y' WHERE FRIEND_ID = #{id} and ID = #{userId}
+	</update>
+	<!-- 친구 끊기 -->
+	<delete id="deleteFriend" parameterType="Map">
+		DELETE FROM add_friendmatelist 
+		WHERE afml_id in (#{id}, #{userId}) and id in (#{id}, #{userId}) and afml_yn='Y' and afml_type=1
+	</delete>
+	<!-- 구독끊기 -->
+	<delete id="deleteSubTo" parameterType="Map">
+		DELETE FROM subscribe_list WHERE SUBSCRIBE_ID = #{subToId} and ID = #{userId}
+	</delete>
+	<!-- 메이트 끊기 -->
+	<delete id="deleteMate" parameterType="Map">
+		DELETE FROM add_friendmatelist 
+		WHERE afml_id in (#{id}, #{userId}) and id in (#{id}, #{userId}) and afml_yn='Y' and afml_type=2
+	</delete>
+	<!-- 구독자 삭제 -->
+	<delete id="deleteSubscriber" parameterType="Map">
+		DELETE FROM subscribe_list WHERE ID = #{subId} AND SUBSCRIBE_ID = #{userId}
+	</delete>
+	<update id="putProfileImage" parameterType="UserProfileDto">
+		UPDATE PROFILE SET PRO_FILEPATH = #{profilePath}
+		WHERE id = #{id}
+	</update>
+	<!-- 구독 신청 -->
+	<insert id="updateSubscribe" parameterType="Map">
+		INSERT INTO SUBSCRIBE_LIST VALUES(#{userId}, #{subToId}, default)
+	</insert>
+	<!-- 친구 및 메이트 신청용 -->
+	<insert id="postFriendORMateRequest" parameterType="Map">
+		INSERT INTO ADD_FRIENDMATELIST(ID, AFML_TYPE, AFML_ID, AFML_YN) VALUES(#{userId},#{type}, #{reqId},'W')
+	</insert>
+	<!-- 신청한 친구 및 메이트 목록 확인용 -->
+	<select id="findRequestedFriendORMate" parameterType="Map">
+		SELECT ID FROM ADD_FRIENDMATELIST WHERE AFML_ID = #{userId} AND AFML_TYPE = #{type}
+	</select>
+	<!-- 친구 및 메이트 삭제용 -->
+	<delete id="deleteFriendORMate" parameterType="Map">
+		DELETE add_friendmatelist
+		WHERE afml_id in (#{id}, #{userId}) and id in (#{id}, #{userId}) and afml_yn='Y' and afml_type=#{type}
+	</delete>
+	<!-- 신고리스트에 값 추가 -->
+	<insert id="saveMateForWarning" parameterType="Map">
+		INSERT INTO complain_list(CL_TYPE, CL_ID, ID, CL_REASON) VALUES(0, #{id},#{userId},#{warningReason})
+	</insert>
+	
+	<!-- 유저 소개 변경 -->
+	<update id="updateIntro" parameterType="Map">
+		UPDATE PROFILE SET PRO_INTRODUCTION = #{proIntroduction} WHERE id = #{id}
+	</update>
+	
+	<!-- 모든 사용자 수 얻기 -->
+	<select id="getAllUserNum" resultType="Integer">
+		SELECT COUNT(*) FROM member
+	</select>
+	
+	<!-- 모든 유저 아이디 얻기 -->
+	<select id="findAllUserId" resultType="String">
+		SELECT ID FROM MEMBER
+	</select>
+	<!-- 같이 돌 수 있는 메이트 선택 -->
+	<select id="getAllMatesAvailable" parameterType="Map" resultType="MateDto">
+		SELECT * FROM (
+		SELECT a.*,
+		TO_CHAR(SCH_START, 'HH24:MI:SS') AS STARTTIME,
+		TO_CHAR(SCH_END, 'HH24:MI:SS') AS ENDTIME
+		FROM (
+		select * from schedule s join mate_list m on s.id=m.id
+		WHERE s.ID IN (SELECT MATE_ID FROM MATE_LIST WHERE ID=#{id})
+		) a
+		WHERE TO_CHAR(SCH_START,'YYYY-MM-DD') = #{sch_date})
+		WHERE not 
+		<![CDATA[((STARTTIME>=#{start_t} AND ENDTIME <= #{end_t}) ]]> OR 
+		<![CDATA[(#{start_t}<=STARTTIME AND STARTTIME<=#{end_t})]]>  OR
+		<![CDATA[(#{start_t}<=ENDTIME AND ENDTIME<=#{end_t})]]>  OR
+		<![CDATA[(STARTTIME<=#{start_t} AND ENDTIME>=#{end_t}))]]>
+	</select>
+	<!-- 스케줄이 등록된 사용자가 맞는지를 먼저 확인 -->
+	<select id="isUserInSchedule" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*) FROM SCHEDULE WHERE ID=#{id} AND TO_CHAR(SCH_START,'YYYY-MM-DD')=#{sch_date}
+	</select>
+</mapper>
